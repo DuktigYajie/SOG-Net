@@ -1,0 +1,4 @@
+numpy
+ase<=3.22.1
+torch
+matscipy

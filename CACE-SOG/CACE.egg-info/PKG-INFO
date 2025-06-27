@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: CACE
+Version: 0.1.0
+Summary: Cartesian Atomic Cluster Expansion Machine Learning Potential
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Requires-Dist: numpy
+Requires-Dist: ase<=3.22.1
+Requires-Dist: torch
+Requires-Dist: matscipy
