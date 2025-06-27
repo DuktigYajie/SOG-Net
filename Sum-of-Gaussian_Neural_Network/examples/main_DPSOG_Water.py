@@ -81,7 +81,6 @@ chargesArray_Total = hf['charges'][:]  # Array of charges
 chargesArray_Total = np.squeeze(chargesArray_Total)
 nameScript="_Nsamples_" + str(Nsamples) +  "_NpointsFourier_" + str(NpointsFourier) + "_radious_A_" + str(radious_A) + "_radious_R_" + str(radious_R) + "_decayRate_" + str(decayRate) + "_water_" + Test_type + "_energyRate_" + str(Energy_rate) + "_forceRate_" + str(Force_rate) + "_inner_factor_A_" + str(inner_factor_A) + "_inner_factor_R_" + str(inner_factor_R)
 #Folder for saving loss, accuracy and model
-#saveFolder  = "/dssg/home/acct-matxzl/matxzl/Yajie/MDNN/ELRC_3D/loss_accuracy_and_model_3d/WaterCC/WaterCC_deepmd/"
 saveFolder  = "model_and_loss/water/"
 
 print(pointsArray_Total.shape)
@@ -98,11 +97,11 @@ Rinput = tf.Variable(pointsArray, name="input", dtype = tf.float32)
 Cinput = tf.Variable(chargesArray, name="input", dtype = tf.float32) 
 
 # read data file of test set: 10% of dataset
-pointsTest = pointsArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  #点的坐标数组
-forcesTest = forcesArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  #力的数组
-energyTest = energyArray_Total[(Nsamples//10*9):Nsamples]  #能量的数组
+pointsTest = pointsArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  # Position
+forcesTest = forcesArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  # Force
+energyTest = energyArray_Total[(Nsamples//10*9):Nsamples]  # Energy
 energyTest = np.squeeze(energyTest)
-chargesTest = chargesArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  #电荷的数组  
+chargesTest = chargesArray_Total[(Nsamples//10*9):Nsamples,:Npoints]  # Charge  
 chargesTest = np.squeeze(chargesTest)
 
 ## Define the model
@@ -138,18 +137,15 @@ E, F = model(Rin2, Cha2, tf.cast(LArray2, dtype = tf.float32), select_neuron, in
 model.summary()
 
 # All of these variables are tensorflow tensors
-# 创建布尔掩码   
+# Create a boolean mask
 
-#end = time.time()
-#print('time 22 elapsed %.4f'%(end - before_loss_time))
 before_loss_time = time.time()
 for i in range(100):
     E, F = model(Rin2, Cha2, tf.cast(LArray2, dtype = tf.float32), select_neuron, inner_factor_A, radious_A, Idx_O_O_A, Idx_H_O_A, Idx_O_H_A, Idx_H_H_A, inner_factor_R, radious_R, Idx_O_O_R, Idx_H_O_R, Idx_O_H_R, Idx_H_H_R, Test_type)
-#print(F.shape)
 end = time.time()
 print('time 22 elapsed %.4f'%(end - before_loss_time))
 
-## Calculate the neighborlist 用Numpy比Tensorflow变量要快很多 ###############################################################################
+## Calculate the neighbor list using Numpy, which is significantly faster than using TensorFlow variables ###############################################################################
 #before_loss_time = time.time()
 Idx_O_A, Idx_H_A, Idx_O_R, Idx_H_R = find_and_sort_neighbors_water(pointsArray, chargesArray, L, radious_A, maxNumNeighs_O_A, maxNumNeighs_H_A, radious_R, maxNumNeighs_O_R, maxNumNeighs_H_R)
 print(Idx_O_A.shape, Idx_H_A.shape, Idx_O_R.shape, Idx_H_R.shape)
@@ -247,33 +243,21 @@ for cycle, (epochs, batchSizeL) in enumerate(zip(Nepochs, batchSizeArray)):
 
   # Iterate over epochs
   for epoch in range(epochs):
-    #start = time.time()
-    #print('============================', flush = True) 
-    #print('Start of epoch %d' % (epoch,))
   
     loss_metric.reset_state()
-    
-    #train_dataset = train_dataset.take(100) 
-    #print(len(train_dataset))
 
     # Iterate over the batches of the dataset
     for step, x_batch_train in enumerate(train_dataset):
       start_epoch_time = time.time()
-
-      #for i in range(14):
-      #  print(i,"   ",x_batch_train[i].shape)
       
     # x_batch_train[0] is the input, x_batch_train[1] is the energy output, and x_batch_train[2] is the force output
       loss = train_Water(model, optimizer, mse_loss_fn, x_batch_train[0], x_batch_train[3], L, select_neuron, inner_factor_A, radious_A, x_batch_train[4], x_batch_train[5], x_batch_train[6], x_batch_train[7], inner_factor_R, radious_R, x_batch_train[8], x_batch_train[9], x_batch_train[10], x_batch_train[11], Test_type, x_batch_train[1], x_batch_train[2], weightE, weightF)
-      #end = time.time()
-      #print('time 2 elapsed %.4f'%(end - start_epoch_time))
 
       loss_metric(loss)
 
     pottrain, forcetrain = model(pointsArray[:10], chargesArray[:10], tf.cast(LArray2, dtype = tf.float32), select_neuron, inner_factor_A, radious_A, Idx_O_O_A[:10], Idx_H_O_A[:10], Idx_O_H_A[:10], Idx_H_H_A[:10], inner_factor_R, radious_R, Idx_O_O_R[:10], Idx_H_O_R[:10], Idx_O_H_R[:10], Idx_H_H_R[:10], Test_type) 
     mae = tf.keras.losses.MeanAbsoluteError()
     err_train = mae(forcetrain, forcesArray[:10,:Npoints,:])
-    #err_train = tf.sqrt(tf.reduce_mean(tf.square(forcetrain - forcesArray[:10,:Npoints,:])))
     err_ener_train = mae(pottrain, energyArray[:10])
 
     potPred, forcePred = model(pointsTest, chargesTest, L, select_neuron,  inner_factor_A, radious_A, IdxTest_O_O_A, IdxTest_H_O_A, IdxTest_O_H_A, IdxTest_H_H_A, inner_factor_R, radious_R, IdxTest_O_O_R, IdxTest_H_O_R, IdxTest_O_H_R, IdxTest_H_H_R, Test_type)
@@ -283,7 +267,6 @@ for cycle, (epochs, batchSizeL) in enumerate(zip(Nepochs, batchSizeArray)):
 
     if err < min_test_F_err:
       min_test_F_err = err
-      #min_test_E_err = err_ener
       model.save_weights(saveFolder+time_name0+'_best_model.h5', save_format='h5')
       print("Relative Error in the trained forces is " +str(err_train.numpy()))
       print("Relative Error in the test forces is " +str(err.numpy()))

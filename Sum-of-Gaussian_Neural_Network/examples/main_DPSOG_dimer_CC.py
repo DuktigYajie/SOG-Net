@@ -63,7 +63,6 @@ Test_type = "SLR2"                     # Test type (e.g., SR, LR, SLR, SLR2)
 
 print("Test_type",Test_type)
 model_load = "Sum-of-Gaussian_Neural_Network/model_and_loss/Dimer/best_model/CC_SR.h5"
-#”/dssg/home/acct-matxzl/matxzl/Yajie/MDNN/Sum-of-Gaussian_Neural_Network/model_and_loss/20250527_170136_maxbest_model.h5"
 
 # read data file
 dataFile="Sum-of-Gaussian_Neural_Network/dataset/dimer0_CC_data.h5";
@@ -128,8 +127,8 @@ genCoordinates, SRIJ = gen_coor_3d_species_three_body_dimer(Rin, neighList, L, 3
 
 # Compute the generated coordinates
 filter = tf.cast(tf.reduce_sum(tf.abs(genCoordinates), axis = -1)>0, tf.int32)
-numNonZero =  tf.reduce_sum(filter, axis = [0,1,2]).numpy() # 非零元素个数 7941106
-numTotal = genCoordinates.shape[0] * genCoordinates.shape[1] * genCoordinates.shape[2] # 总元素个数 12000000
+numNonZero =  tf.reduce_sum(filter, axis = [0,1,2]).numpy()
+numTotal = genCoordinates.shape[0] * genCoordinates.shape[1] * genCoordinates.shape[2]
 
 # Mean is 0, variance is 1
 av = tf.reduce_sum(genCoordinates, axis = [0,1,2], keepdims =True).numpy()[0]/numNonZero
@@ -182,7 +181,6 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=lrSchedule)
 loss_metric = tf.keras.metrics.Mean()
 
 # read data file of test set
-#dataFile="/dssg/home/acct-matxzl/matxzl/Yajie/MDNN/ELRC_3D/data/charge_charge_data.h5";
 
 # extracting the data
 hf = h5py.File(dataFile, 'r')

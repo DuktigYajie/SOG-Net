@@ -36,7 +36,7 @@ def blackbox(kx, ky, kz, beta,lam,h_l):
   squared_sum = tf.square(kx) + tf.square(ky)+ tf.square(kz)
   condition = tf.equal(squared_sum, 0)
   result = beta * tf.exp(-squared_sum / (tf.exp(-lam))**2)
-  return tf.where(condition, 0.0, result) #不考虑zero mode
+  return tf.where(condition, 0.0, result) #Do not consider zero frequency mode
 
 class SOG_3D_pointcharge(tf.keras.layers.Layer):
   def __init__(self, nChannels, NpointsMesh, xLims):
@@ -71,7 +71,7 @@ class SOG_3D_pointcharge(tf.keras.layers.Layer):
 
     self.bandwidth = tf.linspace(-1.5, 2.3, self.bandwidth_num) #exponential #
 
-  def build(self, input_shape): #第一次调用层时调用
+  def build(self, input_shape):
 
     print("building the channels")
     # we initialize the channel multipliers
@@ -164,7 +164,7 @@ class SOG_3DmixedSpecies_dimer(tf.keras.layers.Layer):
     self.bandwidth = tf.linspace(0.0, 1.8, self.bandwidth_num) #exponential #
 
 
-  def build(self, Q): #第一次调用层时调用
+  def build(self, Q):
 
     print("building the channels")
     # we initialize the channel multipliers
@@ -276,7 +276,7 @@ class SOG_3DmixedSpecies_Water(tf.keras.layers.Layer):
 
   @tf.function #(jit_compile=True)
   def call(self, input, charge):
-      start_time = time.time() #计时
+      start_time = time.time()
       
       Nsamples, Npoints, Dimenions = input.shape
       Npoints_Divide_3 = tf.cast(Npoints/3, tf.int32)
