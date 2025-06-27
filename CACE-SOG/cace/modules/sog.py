@@ -25,21 +25,11 @@ class SOGPotential(nn.Module):
         self.N_dl = N_dl
         self.bandwidth_num = bandwidth_num
         # Create bandwidth 
-        # self.bandwidth = torch.linspace(-5, 1.2, self.bandwidth_num)  # Exponential decay
         # Parameters to learn during training
         self.shift_1 = torch.nn.Parameter(torch.linspace(-0.5, 1.0, self.bandwidth_num, dtype=torch.float32))
         self.amplitude_1 = torch.nn.Parameter(torch.ones(self.bandwidth_num, dtype=torch.float32))
 
-        # self.shift_1 = torch.nn.Parameter(torch.linspace(-3.0, 2.0, self.bandwidth_num, dtype=torch.float32))
-        # self.amplitude_1 = torch.nn.Parameter(torch.tensor([-7.0450, 11.4645, -4.9724, 0.4311, 0.1973, -0.1282, 0.4223, 1.3309, 3.2130, 8.1743, 19.3299, 55.2736],dtype=torch.float32))# dimer-CC
-        # self.amplitude_1 = torch.nn.Parameter(torch.tensor([0.2750, 0.1375, 0.0688, 0.0344, 0.0172, 0.0086, 0.0043, 0.0021, 0.0011, 0.0005, 0.0003, 0.0001], dtype=torch.float32))
-        # self.shift_1 = torch.nn.Parameter(torch.tensor([2.8, 5.7, 11.4, 22.7, 45.5, 91.0, 182.0, 364.0, 728.0, 1456.0, 2912.0, 5823.9],dtype=torch.float32))
-        
-        # self.amplitude_1 = torch.tensor([0.2750, 0.1375, 0.0688, 0.0344, 0.0172, 0.0086, 0.0043, 0.0021, 0.0011, 0.0005, 0.0003, 0.0001], dtype=torch.float32).to(device)
-        # self.shift_1 = torch.tensor([2.8, 5.7, 11.4, 22.7, 45.5, 91.0, 182.0, 364.0, 728.0, 1456.0, 2912.0, 5823.9],dtype=torch.float32).to(device)
- 
         self.Periodic = Periodic
-        #print("shift_begin:",self.shift_1)
 
         self.norm_factor = torch.tensor(1.0)# self.norm_factor = torch.nn.Parameter(torch.tensor(1.0))
         self.ene_factor = torch.nn.Parameter(torch.tensor(0.0))#self.ene_factor = torch.tensor(0.0) # self.ene_factor = torch.nn.Parameter(torch.tensor(0.0))
@@ -63,7 +53,6 @@ class SOGPotential(nn.Module):
         self.sigma_sq_half = self.sigma ** 2 / 2.0
         self.twopi = 2.0 * torch.pi
         self.twopi_sq = self.twopi ** 2
-        #self.norm_factor = 1.0 
         self.k_sq_max = (self.twopi / self.dl) ** 2
 
     def forward(self, data: Dict[str, torch.Tensor], **kwargs):
@@ -81,15 +70,13 @@ class SOGPotential(nn.Module):
         
         # box = data['cell'].view(-1, 3, 3).diagonal(dim1=-2, dim2=-1)
         box = data['cell'].view(-1, 3, 3)
-        #print("cell:",box)
 
         r = data['positions'] # (total_atom_number_of_all_configurations_in_batch, 3)
-        #print(r.shape)
 
         q = data[self.feature_key]
         if q.dim() == 1:
             q = q.unsqueeze(1)
-        #print(q.shape) # (total_atom_number_of_all_configurations_in_batch, number_of_q_layers)
+        # (total_atom_number_of_all_configurations_in_batch, number_of_q_layers)
 
         # Check the input dimension
         n, d = r.shape
@@ -97,16 +84,12 @@ class SOGPotential(nn.Module):
         assert n == q.size(0), 'q dimension error'
 
         unique_batches = torch.unique(batch_now)  # Get unique batch indices. Batch_now saves the corresponding configuration index [0 0 ... 0 1 ... 1 2 ... 2]. Unique is used to get the total number of configurations in the batch
-        #print(batch_now)
-        #print(batch_now.shape, unique_batches.shape)
         results = []
         field_results = []
         for i in unique_batches:
             mask = (batch_now == i)  # Create a mask for the i-th configuration
             # Calculate the potential energy for the i-th configuration
             r_raw_now, q_now, box_now = r[mask], q[mask], box[i] # Extract the atomic information for each configuration.
-            #print("Mask:",mask,i,r_raw_now.shape, q_now.shape, box_now.shape,r.shape,q.shape,box.shape)
-            #print("box_now:", box_now)
             box_diag = box[i].diagonal(dim1=-2, dim2=-1)
             if not hasattr(self, 'Periodic'):
                 self.Periodic = False
@@ -145,17 +128,10 @@ class SOGPotential(nn.Module):
                 #print(pot_neutral, pot)
             else:
                 pot_neutral = 0.0
-            
-            #print("pot", pot)
-            #print("pot_ext",pot_ext)
-            #print("pot_neutral",pot_neutral)
-            #print(pot + pot_ext + pot_neutral)
-            # results.append(pot + pot_ext + pot_neutral)
-            # print("SOG:",(pot + pot_ext + pot_neutral).shape)
             if not hasattr(self, 'ene_factor'):
                 self.ene_factor = 0.0
             results.append(pot + self.ene_factor)
-        #print(results[0].shape,results[1].shape,results[2].shape, pot.shape)
+
         data[self.output_key] = torch.stack(results, dim=0).sum(axis=1) if self.aggregation_mode == "sum" else torch.stack(results, dim=0)
         if self.compute_field:
             field_results.append(field)
@@ -165,8 +141,6 @@ class SOGPotential(nn.Module):
     def compute_potential_SOG(self, r_raw, q, box, compute_field=False):
         dtype = torch.complex64 if r_raw.dtype == torch.float32 else torch.complex128
         device = r_raw.device
-        
-        # print(self.shift_1)
         
         cell_inv = torch.linalg.inv(box)
         G = 2 * torch.pi * cell_inv.T
@@ -178,7 +152,7 @@ class SOGPotential(nn.Module):
         N_dl_x = (torch.ceil(Lx / self.N_dl)).int()
         N_dl_y = (torch.ceil(Ly / self.N_dl)).int()
         N_dl_z = (torch.ceil(Lz / self.N_dl)).int()
-        #print(N_dl_x, N_dl_y,N_dl_z)
+
         n1 = torch.arange(-N_dl_x, N_dl_x + 1, device=device)
         n2 = torch.arange(-N_dl_y, N_dl_y + 1, device=device)
         n3 = torch.arange(-N_dl_z, N_dl_z + 1, device=device)
@@ -205,38 +179,26 @@ class SOGPotential(nn.Module):
         # Compute structure factor S(k), Σq*e^(ikr)
         k_dot_r = torch.matmul(r_raw, kvec.T)  # [n, M]
         exp_ikr = torch.exp(1j * k_dot_r)
-        q_expanded = q.unsqueeze(-1)  # 将 q 的形状从 (16, 3) 扩展为 (16, 3, 1)
-        # 扩展 exp_ikr 的维度
+        q_expanded = q.unsqueeze(-1)  # Expand the shape of q from (16, 3) to (16, 3, 1)
+        # Expand the dimensions of exp_ikr
         exp_ikr_expanded = exp_ikr.unsqueeze(1)  # 将 exp_ikr 的形状从 (16, 4484342) 扩展为 (16, 1, 4484342)
-        # 逐元素乘法
+        # Element-wise multiplication
         product = q_expanded * exp_ikr_expanded  # 形状为 (16, 3, 4484342)
-        # 计算结构因子 S(k)
-        S_k = torch.sum(product, dim=0)  # 形状为 (3, 4484342)
+        # Calculate structure factor S(k)
+        S_k = torch.sum(product, dim=0)  # 
         
-        min_term = -1 / torch.exp(-2 * self.shift_1)  # 计算指数衰减
-        min_term = min_term.view(1, 1, 1, -1)  # 扩展维度
-        kfac = self.amplitude_1.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  # 计算 SOG 频谱响应
-        # print("multiplier:",multiplier.shape,multiplier)
-        kfac = kfac.sum(dim=-1)  # 在 SOG 频谱维度求和
-        #kfac = torch.exp(-self.sigma_sq_half * k_sq) / k_sq
+        min_term = -1 / torch.exp(-2 * self.shift_1)  # Compute Exponents
+        min_term = min_term.view(1, 1, 1, -1)  # Expand Dimension
+        kfac = self.amplitude_1.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  # Compute SOG 
+        kfac = kfac.sum(dim=-1)  # Reduction
         
         volume = torch.det(box)
         pot = (factors * kfac * torch.abs(S_k)**2).sum() / volume
-        
         q_field = torch.zeros_like(q, dtype=r_raw.dtype, device=device)
-        
-        # if compute_field:
-        #     sk_field = 2 * kfac * torch.conj(S_k)
-        #     q_field = (factors * torch.real(exp_ikr * sk_field)).sum(dim=1) / volume
-        # if self.remove_self_interaction and self.exponent == 1:
-        #     pot -= torch.sum(q**2) / (self.sigma * (2 * torch.pi)**1.5)
-        #     q_field -= q * (2 / (self.sigma * (2 * torch.pi)**1.5))
         if compute_field:
             sk_field = 2 * kfac * torch.conj(S_k)
             q_field = (factors * torch.real(exp_ikr * sk_field)).sum(dim=1) / volume
-        if self.remove_self_interaction and self.exponent == 1:
-            #print("Here is self-interaction")
-            #pot -= torch.sum(q**2) / (self.sigma * (2 * torch.pi)**1.5)  
+        if self.remove_self_interaction and self.exponent == 1: 
             diag_sum = kfac.sum(dim=-1).sum(dim=-1).sum(dim=-1) / (2 * volume)
             pot -= torch.sum(q**2)*diag_sum
             q_field -= q * (2 *diag_sum)
@@ -246,31 +208,14 @@ class SOGPotential(nn.Module):
         dtype = torch.complex64 if r_raw.dtype == torch.float32 else torch.complex128
         device = r_raw.device
         
-        #print(self.shift_1)
-        
         cell_inv = torch.linalg.inv(box)
         G = 2 * torch.pi * cell_inv.T
-        
-        #print("Here",box,cell_inv,G)
-
-        # norms = torch.norm(box, dim=1)
-        # Lx = box[0,0]
-        # Ly = box[1,1]
-        # Lz = box[2,2]
-        # N_dl_x = (torch.ceil(Lx / self.N_dl)).int()
-        # N_dl_y = (torch.ceil(Ly / self.N_dl)).int()
-        # N_dl_z = (torch.ceil(Lz / self.N_dl)).int()
-        # #print(N_dl_x, N_dl_y,N_dl_z)
-        # n1 = torch.arange(-N_dl_x, N_dl_x + 1, device=device)
-        # n2 = torch.arange(-N_dl_y, N_dl_y + 1, device=device)
-        # n3 = torch.arange(-N_dl_z, N_dl_z + 1, device=device)
         
         norms = torch.norm(box, dim=1)
         Nk = [max(1, int(n.item() / self.dl)) for n in norms]
         n1 = torch.arange(-Nk[0], Nk[0] + 1, device=device)
         n2 = torch.arange(-Nk[1], Nk[1] + 1, device=device)
         n3 = torch.arange(-Nk[2], Nk[2] + 1, device=device)
-        # print(Nk,n1,n2,n3)
 
         nvec = torch.stack(torch.meshgrid(n1, n2, n3, indexing="ij"), dim=-1).reshape(-1, 3)
         nvec = nvec.to(G.dtype)
@@ -295,27 +240,18 @@ class SOGPotential(nn.Module):
         # Compute structure factor S(k), Σq*e^(ikr)
         k_dot_r = torch.matmul(r_raw, kvec.T)  # [n, M]
         exp_ikr = torch.exp(1j * k_dot_r)
-        q_expanded = q.unsqueeze(-1)  # 将 q 的形状从 (16, 3) 扩展为 (16, 3, 1)
-        # 扩展 exp_ikr 的维度
-        exp_ikr_expanded = exp_ikr.unsqueeze(1)  # 将 exp_ikr 的形状从 (16, 4484342) 扩展为 (16, 1, 4484342)
-        # 逐元素乘法
-        product = q_expanded * exp_ikr_expanded  # 形状为 (16, 3, 4484342)
-        # 计算结构因子 S(k)
-        S_k = torch.sum(product, dim=0)  # 形状为 (3, 4484342)
+        q_expanded = q.unsqueeze(-1)
+        exp_ikr_expanded = exp_ikr.unsqueeze(1)
+        product = q_expanded * exp_ikr_expanded
+        S_k = torch.sum(product, dim=0)
         
-        min_term = -1 / torch.exp(-2 * self.shift_1)  # 计算指数衰减
-        min_term = min_term.view(1, 1, 1, -1)  # 扩展维度
-        kfac = self.amplitude_1.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  # 计算 SOG 频谱响应
-        # print("multiplier:",multiplier.shape,multiplier)
-        kfac = kfac.sum(dim=-1)  # 在 SOG 频谱维度求和
-        #kfac = torch.exp(-self.sigma_sq_half * k_sq) / k_sq
+        min_term = -1 / torch.exp(-2 * self.shift_1)
+        min_term = min_term.view(1, 1, 1, -1)
+        kfac = self.amplitude_1.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)
+        kfac = kfac.sum(dim=-1)
 
         volume = torch.det(box)
         pot = (factors * kfac * torch.abs(S_k)**2).sum() / (2*volume)
-
-        # kfac1 = torch.exp(-self.sigma_sq_half * k_sq) / k_sq
-        # pot1 = (factors * kfac1 * torch.abs(S_k)**2).sum() / volume
-        # print("pot error:",pot.item(),pot1.item(),(pot-pot1).item())
 
         q_field = torch.zeros_like(q, dtype=r_raw.dtype, device=device)
         if compute_field:
@@ -323,42 +259,25 @@ class SOGPotential(nn.Module):
             q_field = (factors * torch.real(exp_ikr * sk_field)).sum(dim=1) / volume
             print("compute field")
         if self.remove_self_interaction and self.exponent == 1:
-            #print("Here is self-interaction")
-            #pot -= torch.sum(q**2) / (self.sigma * (2 * torch.pi)**1.5)  
             diag_sum = kfac.sum(dim=-1).sum(dim=-1).sum(dim=-1) / (2 * volume)
             pot -= torch.sum(q**2)*diag_sum
             q_field -= q * (2 *diag_sum)
             print("remove_self_interaction")
-        # if(self.remove_zero_mode):
-        #     kfac_zero = self.amplitude_1.sum() * torch.sum(q ** 2) / (2*volume)
-        #     pot = pot + kfac_zero
-
 
         return pot.unsqueeze(0) * self.norm_factor, q_field.unsqueeze(1) * self.norm_factor
 
     def compute_potential_Gaussian_realspace(self, r_raw, q, compute_field=False):
-        #print(r_raw.shape)
         r_ij = r_raw.unsqueeze(0) - r_raw.unsqueeze(1)
-        #print(r_ij.shape)
         r_ij_norm = torch.norm(r_ij, dim=-1)
 
         # min_term = -4*torch.exp(-2 * self.shift_1)  # NaCl charge transfer model use this
         min_term = -1/self.shift_1**2 # Dipeptides model use this
-        #print(self.shift_1)
-        # print(min_term,"herr",min_term.shape)
         min_term = min_term.view(1, 1, -1)  
-        # print(min_term.shape)
         convergence_func_ij = self.amplitude_1.view(1, 1, -1) * torch.exp( torch.square(r_ij_norm).unsqueeze(2) * min_term)
         convergence_func_ij = torch.sum(convergence_func_ij, dim=2)
-        # print(convergence_func_ij.shape)
-        #print(convergence_func_ij.shape)
-        # epsilon = 1e-6
-        # r_p_ij = 1.0 / (r_ij_norm + epsilon)
         if q.dim() == 1:
             # [n_node, n_q]
             q = q.unsqueeze(1)
-        
-        # print(q.shape,compute_field,self.remove_self_interaction)
 
         Ewald_convergence_func_ij = torch.special.erf(r_ij_norm / self.sigma / (2.0 ** 0.5))
         Ewald_r_p_ij = 1.0 / (r_ij_norm + 1e-6)
@@ -368,16 +287,12 @@ class SOGPotential(nn.Module):
         convergence_func_ij[idx, idx] = 0
 
         pot = torch.sum(q.unsqueeze(0) * q.unsqueeze(1) * convergence_func_ij.unsqueeze(2)).view(-1) / self.twopi / 2.0        
-        # print("Here:",convergence_func_ij.unsqueeze(2).shape,convergence_func_ij.unsqueeze(2))
         pot = pot.to(torch.float32)
-
-        # print("Ewald vs SOG1:",(Ewald_r_p_ij.unsqueeze(2) * Ewald_convergence_func_ij.unsqueeze(2)), (convergence_func_ij.unsqueeze(2)),(Ewald_r_p_ij.unsqueeze(2) * Ewald_convergence_func_ij.unsqueeze(2)).shape,(convergence_func_ij.unsqueeze(2)).shape)
-        #print(pot.shape)
         q_field = torch.zeros_like(q, dtype=q.dtype, device=q.device) # Field due to q
         # Compute field if requested
         if compute_field:
             # [n_node, 1 , n_q] * [n_node, n_node, 1] * [n_node, n_node, 1]
-            #q_field = torch.sum(q.unsqueeze(1) * r_p_ij.unsqueeze(2) * convergence_func_ij.unsqueeze(2), dim=0) / self.twopi
+            # q_field = torch.sum(q.unsqueeze(1) * r_p_ij.unsqueeze(2) * convergence_func_ij.unsqueeze(2), dim=0) / self.twopi
             q_field = torch.sum(q.unsqueeze(1) * convergence_func_ij.unsqueeze(2), dim=0) / self.twopi
 
         # because this realspace sum already removed self-interaction, we need to add it back if needed
