@@ -17,7 +17,7 @@ Paper Links: [ArXiv](https://arxiv.org/abs/2502.04668)
 Please refer to the ```setup.py``` file for installation instructions.
 
 ## Quick Start
-Example scripts can be found in ```\Deep-SOG\examples``` and each numerical example folder in ```\CACE-SOG```, which are based on the DeepMD short-range descriptor and the CACE descriptor, respectively.
+Example scripts can be found in ```\Deep-SOG\examples``` and each numerical example folder in ```\CACE-SOG```, which are based on the [DeepMD](https://github.com/deepmodeling/deepmd-kit) short-range descriptor and the [CACE](https://github.com/BingqingCheng/cace) descriptor, respectively.
 
 ## License
 This project is licensed under the MIT License.
