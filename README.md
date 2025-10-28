@@ -5,7 +5,7 @@ Sum-of-Gaussians Neural Network (SOG-Net) is a lightweight and versatile framewo
 
 Authors: Yajie Ji, Jiuyang Liang, Zhenli Xu. 
 
-Paper Links: [ArXiv](https://arxiv.org/abs/2502.04668)
+Paper Links: [PRL](https://journals.aps.org/prl/abstract/10.1103/ssp9-7s81)  [ArXiv](https://arxiv.org/abs/2502.04668)
 
 ## Requirements
 - Python 3.10.9 or higher
@@ -24,15 +24,21 @@ This project is licensed under the MIT License.
 
 ## Citation
 ```
-@misc{ji2025machinelearninginteratomicpotentialslongrange,
-      title={Machine-Learning Interatomic Potentials for Long-Range Systems}, 
-      author={Yajie Ji and Jiuyang Liang and Zhenli Xu},
-      year={2025},
-      eprint={2502.04668},
-      archivePrefix={arXiv},
-      primaryClass={physics.chem-ph},
-      url={https://arxiv.org/abs/2502.04668}, 
+@article{ji2025SOGNet,
+  title = {Machine-Learning Interatomic Potentials for Long-Range Systems},
+  author = {Ji, Yajie and Liang, Jiuyang and Xu, Zhenli},
+  journal = {Phys. Rev. Lett.},
+  volume = {135},
+  issue = {17},
+  pages = {178001},
+  numpages = {8},
+  year = {2025},
+  month = {Oct},
+  publisher = {American Physical Society},
+  doi = {10.1103/ssp9-7s81},
+  url = {https://link.aps.org/doi/10.1103/ssp9-7s81}
 }
+
 ```
 
 ## Contact
