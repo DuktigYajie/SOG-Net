@@ -165,11 +165,11 @@ class SOGPotential(nn.Module):
         S_k_imag = (q.unsqueeze(2) * sin_k_dot_r.unsqueeze(1)).sum(dim=0)
         S_k_sq = S_k_real**2 + S_k_imag**2  # [M]
         
-        min_term = -1 / torch.exp(-2 * self.sl)  # 计算指数衰减
-        min_term = min_term.view(1, 1, 1, -1)  # 扩展维度
-        kfac = self.wl.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  # 计算 SOG 频谱响应
+        min_term = -1 / torch.exp(-2 * self.sl) 
+        min_term = min_term.view(1, 1, 1, -1)  
+        kfac = self.wl.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  
         # print("multiplier:",multiplier.shape,multiplier)c
-        kfac = kfac.sum(dim=-1)  # 在 SOG 频谱维度求和
+        kfac = kfac.sum(dim=-1)  
 
 
         volume = torch.det(box)
@@ -232,11 +232,11 @@ class SOGPotential(nn.Module):
         # S_k_imag = (q.unsqueeze(2) * sin_k_dot_r.unsqueeze(1)).sum(dim=0)
         # S_k_sq = S_k_real**2 + S_k_imag**2  # [M]
         
-        min_term = -1 / torch.exp(-2 * self.sl)  # 计算指数衰减
-        min_term = min_term.view(1, 1, 1, -1)  # 扩展维度
-        kfac = self.wl.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  # 计算 SOG 频谱响应
+        min_term = -1 / torch.exp(-2 * self.sl)  
+        min_term = min_term.view(1, 1, 1, -1)  
+        kfac = self.wl.view(1, 1, 1, -1) * torch.exp(k_sq.unsqueeze(-1) * min_term)  
         # print("multiplier:",multiplier.shape,multiplier)c
-        kfac = kfac.sum(dim=-1)  # 在 SOG 频谱维度求和
+        kfac = kfac.sum(dim=-1)  
         kfac[condition] = 0.0
         
         pot= torch.tensor(0.0, device=device)
@@ -246,7 +246,6 @@ class SOGPotential(nn.Module):
             charge = torch.complex(q[:, i], torch.zeros_like(q[:, i]))
             recon = pytorch_finufft.functional.finufft_type1(r_in.T, charge, output_shape=kx_grid.shape, eps=1e-4, isign = -1)
             # print("Type1 finished")
-            # 在执行计算前添加形状检查
             # print("kfac shape:", kfac.shape, kfac.dtype)
             # print("recon shape:", recon.shape, recon.dtype)
             con_sog = torch.mul(kfac, recon)
@@ -273,7 +272,7 @@ class SOGPotential(nn.Module):
 
         min_term = -1/self.sl**2
         # min_term = torch.exp(-2 * self.sl)
-        min_term = min_term.view(1, 1, -1)  # 扩展维度
+        min_term = min_term.view(1, 1, -1)  
         convergence_func_ij = self.wl.view(1, 1, -1) * torch.exp( torch.square(r_ij_norm).unsqueeze(2) * min_term)
         convergence_func_ij = torch.sum(convergence_func_ij, dim=2)
 
