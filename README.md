@@ -10,7 +10,7 @@ Paper Links: [PRL](https://journals.aps.org/prl/abstract/10.1103/ssp9-7s81)  [Ar
 ## Requirements
 - Python 3.10.9 or higher
 - Tensorflow-gpu
-- FINUFFT (tensorflow version)
+- FINUFFT (pytorch or tensorflow version)
 - ASE (Atomic Simulation Environment)
 
 ## Installation
